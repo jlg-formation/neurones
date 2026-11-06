@@ -1,0 +1,27 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64">
+  <title>Le laboratoire des neurones</title>
+  <defs>
+    <linearGradient id="glass" x2="0" y2="1">
+      <stop stop-color="#fff"/><stop offset="1" stop-color="#eee9ff"/>
+    </linearGradient>
+    <linearGradient id="liquid" x2="1" y2="1">
+      <stop stop-color="#a0f0d0"/><stop offset="1" stop-color="#60cbb0"/>
+    </linearGradient>
+    <clipPath id="inside"><path d="M15 20h34v29a7 7 0 0 1-7 7H22a7 7 0 0 1-7-7Z"/></clipPath>
+  </defs>
+  <path d="M15 20h34v29a7 7 0 0 1-7 7H22a7 7 0 0 1-7-7Z" fill="url(#glass)"/>
+  <path d="M12 19h40" stroke="#6551d9" stroke-width="4" stroke-linecap="round"/>
+  <g clip-path="url(#inside)">
+    <path d="M12 34c8-7 14 5 23 0s13-3 18-1v26H12Z" fill="url(#liquid)"/>
+    <path d="m23 44 10-8 9 11m-19-3 19 3m-9-11-2 16" fill="none" stroke="#6551d9" stroke-width="2.5" stroke-linecap="round"/>
+    <g fill="#6551d9" stroke="#f4fffa" stroke-width="1.5">
+      <circle cx="23" cy="44" r="4"/><circle cx="33" cy="36" r="4"/>
+      <circle cx="42" cy="47" r="4"/><circle cx="31" cy="52" r="3"/>
+    </g>
+    <path d="M19 25v8" stroke="#fff" stroke-width="2" stroke-linecap="round"/>
+  </g>
+  <path d="M15 21v28a7 7 0 0 0 7 7h20a7 7 0 0 0 7-7V21" fill="none" stroke="#6551d9" stroke-width="2.5" stroke-linecap="round"/>
+  <circle cx="24" cy="11" r="3.5" fill="#a0f0d0" stroke="#6551d9" stroke-width="1.5"/>
+  <circle cx="38" cy="8" r="2" fill="#9988e8"/>
+  <circle cx="40" cy="26" r="2.5" fill="#a0f0d0"/>
+</svg>

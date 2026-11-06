@@ -206,7 +206,13 @@ function App() {
     <div className="app-shell" data-view={mobileView}>
       <header className="flex items-center justify-between gap-4">
         <div className="flex items-center gap-4">
-          <div className="brand-mark">⌘</div>
+          <img
+            className="brand-mark"
+            src="/neurones/favicon.svg"
+            width="36"
+            height="36"
+            alt=""
+          />
           <div>
             <p className="eyebrow">EXPLORER · COMPRENDRE · APPRENDRE</p>
             <h1>Le laboratoire des neurones</h1>
