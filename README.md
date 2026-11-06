@@ -76,3 +76,9 @@ Changer d’étape du parcours modifie seulement l’architecture et les explica
 ### Menu de dessins prédéfinis
 
 Un select natif « Dessins prédéfinis » remplace les boutons Deux groupes, XOR et Cercles. La sélection charge immédiatement les points du modèle choisi, sans validation supplémentaire et en conservant l’architecture active. Le texte sous le menu précise que ce choix remplace les points actuels. Le chargement met en pause et réinitialise l’entraînement. Après édition manuelle, effacement ou restauration d’un plan depuis le stockage local, le menu indique « Plan actuel ».
+
+## Déploiement GitHub Pages
+
+Site : https://jlg-formation.github.io/neurones/
+
+Chaque push sur `master` lance les tests, compile le projet et publie `dist` via GitHub Actions. Le chemin de base Vite est `/neurones/` (également en développement local).

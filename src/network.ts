@@ -95,7 +95,11 @@ export const xorSolution = (): Network => ({
   hidden: 2,
   weights: [8, 8, 8, 8, 8, -8, 16, -16, -8],
 });
-export type Dataset = "Deux groupes" | "XOR" | "Cercles";
+export const datasetNames = [
+  "Deux groupes", "XOR", "Cercles", "Lettre A", "Lettre S", "Lettre C",
+  "Deux lunes", "Vagues", "Damier",
+] as const;
+export type Dataset = (typeof datasetNames)[number];
 export function dataset(name: Dataset): Point[] {
   const point = (x: number, y: number, target: 0 | 1, i: number): Point => ({
     id: `${name}-${i}`,
@@ -103,6 +107,41 @@ export function dataset(name: Dataset): Point[] {
     y,
     target,
   });
+  const letters: Partial<Record<Dataset, string[]>> = {
+    "Lettre A": ["01110", "11011", "11011", "11111", "11011", "11011", "11011"],
+    "Lettre S": ["01111", "11000", "11000", "01110", "00011", "00011", "11110"],
+    "Lettre C": ["01111", "11000", "11000", "11000", "11000", "11000", "01111"],
+  };
+  const glyph = letters[name];
+  if (glyph) {
+    // Surround the letter with background samples to teach its full outline.
+    return Array.from({ length: 63 }, (_, i) => {
+      const col = i % 7, row = Math.floor(i / 7);
+      return point((col - 3) * 0.7, (4 - row) * 0.6,
+        glyph[row - 1]?.[col - 1] === "1" ? 0 : 1, i);
+    });
+  }
+  if (name === "Deux lunes")
+    return Array.from({ length: 64 }, (_, i) => {
+      const target = (i < 32 ? 0 : 1) as 0 | 1;
+      const angle = (i % 32) / 31 * Math.PI;
+      const radius = 1.55 + 0.12 * Math.sin(i * 7);
+      return point(target ? 0.8 - radius * Math.cos(angle) : -0.8 + radius * Math.cos(angle),
+        target ? 0.45 - radius * Math.sin(angle) : radius * Math.sin(angle) - 0.45, target, i);
+    });
+  if (name === "Vagues")
+    return Array.from({ length: 72 }, (_, i) => {
+      const target = (i < 36 ? 0 : 1) as 0 | 1;
+      const x = -2.5 + (i % 36) / 35 * 5;
+      return point(x, 1.1 * Math.sin(x * 1.6) + (target ? 0.7 : -0.7)
+        + 0.12 * Math.sin(i * 9), target, i);
+    });
+  if (name === "Damier")
+    return Array.from({ length: 81 }, (_, i) => {
+      const col = i % 9, row = Math.floor(i / 9);
+      return point((col - 4) * 0.6, (row - 4) * 0.6,
+        ((Math.floor(col / 3) + Math.floor(row / 3)) % 2) as 0 | 1, i);
+    });
   if (name === "XOR")
     return [
       [-1, -1, 0],

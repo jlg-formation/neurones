@@ -7,7 +7,7 @@ import {
   type ReactNode,
 } from "react";
 import { createRoot } from "react-dom/client";
-import { forward, metrics, type Dataset } from "./network";
+import { forward, metrics, datasetNames, type Dataset } from "./network";
 import { initial, reducer } from "./state";
 import { loadPoints, savePoints } from "./storage";
 import { LossChart, NetworkDiagram, Plot, type Tool } from "./visuals";
@@ -60,18 +60,33 @@ function LegendOption({
   onChange: (value: boolean) => void;
   children: ReactNode;
 }) {
+  const id = useId();
+  const descriptions: Record<string, string> = {
+    "Erreurs de classification": "Entoure les points dont la classe prédite diffère de la classe attendue.",
+    "Dernier lot": "Met en évidence les points utilisés lors du dernier pas d’entraînement.",
+    "Frontière à 0,5": "Trace la ligne où la prédiction du réseau, ou l’activation du neurone inspecté, vaut 0,5.",
+    "Gradient 0 vers 1": "Colore le fond selon la prédiction du réseau, ou l’activation du neurone inspecté, de 0 à 1.",
+  };
+  const paths: Record<string, ReactNode> = {
+    "Erreurs de classification": <><circle cx="12" cy="12" r="8"/><path d="m9 9 6 6m0-6-6 6"/></>,
+    "Dernier lot": <><rect x="3" y="3" width="18" height="18" rx="4" strokeDasharray="3 3"/><circle cx="9" cy="9" r="1"/><circle cx="15" cy="10" r="1"/><circle cx="11" cy="15" r="1"/></>,
+    "Frontière à 0,5": <path d="M4 20V4m0 16h16M6 17c2-8 10-2 12-12"/>,
+    "Gradient 0 vers 1": <><rect x="3" y="4" width="18" height="16" rx="3"/><path d="M7 7v10m4-10v10m4-10v10" opacity=".5"/><path d="M18 7v10" strokeWidth="3"/></>,
+  };
   return (
-    <label className="legend-option">
-      <input
-        type="checkbox"
-        aria-label={label}
-        checked={checked}
-        onChange={(event) => onChange(event.target.checked)}
-      />
-      <span className="legend-option-content">{children}</span>
-    </label>
+    <div className="display-option">
+      <Button active={checked} aria-label={label} aria-describedby={id}
+        onClick={() => onChange(!checked)} className="display-toggle">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+          strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">{paths[label]}</svg>
+      </Button>
+      <div id={id} role="tooltip" className="display-tooltip">
+        <strong>{children}</strong><span>{descriptions[label]}</span>
+      </div>
+    </div>
   );
 }
+
 function Metric({
   label,
   value,
@@ -411,7 +426,7 @@ function App() {
               >
                 <option value="">Choisir un modèle…</option>
                 <option value="empty">Modèle vide</option>
-                {(["Deux groupes", "XOR", "Cercles"] as Dataset[]).map(
+                {datasetNames.map(
                   (name) => (
                     <option key={name} value={name}>
                       {name}
@@ -419,6 +434,7 @@ function App() {
                   ),
                 )}
               </select>
+              <div className="plot-edit-tools">
               <div
                 className="class-buttons joined-buttons"
                 role="group"
@@ -471,34 +487,9 @@ function App() {
                   </Button>
                 </div>
               </div>
-            </div>
-            {s.inspected !== null && (
-              <button
-                className="back-link"
-                onClick={() => dispatch({ type: "inspect", index: null })}
-              >
-                ← Revenir à la sortie du réseau
-              </button>
-            )}
-            <div className="plot-stage">
-              <Plot
-                net={s.net}
-                points={s.points}
-                index={s.inspected}
-                tool={tool}
-                target={target}
-                selected={s.selected}
-                lastBatch={s.lastBatch}
-                showErrors={showErrors}
-                showBatch={showBatch}
-                showBoundary={showBoundary}
-                showGradient={showGradient}
-                onPoints={(points) => dispatch({ type: "points", points })}
-                onSelect={(id) => dispatch({ type: "select", id })}
-              />
-            </div>
+              </div>
             <div
-              className="legend"
+              className="display-options"
               role="group"
               aria-label="Options d’affichage"
             >
@@ -542,10 +533,41 @@ function App() {
                 </LegendOption>
               </div>
             </div>
-            <p className="footnote">
-              {s.points.length} échantillons · modifiables dans le plan
-            </p>
-            <p className="plot-help">
+            </div>
+            {s.inspected !== null && (
+              <button
+                className="back-link"
+                onClick={() => dispatch({ type: "inspect", index: null })}
+              >
+                ← Revenir à la sortie du réseau
+              </button>
+            )}
+            <div className="plot-stage">
+              <Plot
+                net={s.net}
+                points={s.points}
+                index={s.inspected}
+                tool={tool}
+                target={target}
+                selected={s.selected}
+                lastBatch={s.lastBatch}
+                showErrors={showErrors}
+                showBatch={showBatch}
+                showBoundary={showBoundary}
+                showGradient={showGradient}
+                onPoints={(points) => dispatch({ type: "points", points })}
+                onSelect={(id) => dispatch({ type: "select", id })}
+              />
+            </div>
+            <div className="plot-status" role="status">
+              {!s.points.length ? (
+                <span>Ajoutez des points ou chargez un jeu pour commencer.</span>
+              ) : contradiction ? (
+                <span>Deux points au même endroit ont des cibles opposées : le réseau ne peut pas satisfaire les deux.</span>
+              ) : (
+                <>
+              <span>{s.points.length} échantillons · Dernier lot : {s.lastBatch.length} / {s.points.length} points</span>
+              <span>
               {tool === "add"
                 ? `Cliquez dans le plan pour ajouter un point ${target ? "blanc (1)" : "noir (0)"}.`
                 : tool === "delete"
@@ -560,18 +582,10 @@ function App() {
                   .
                 </>
               )}
-            </p>
-            {!s.points.length && (
-              <p className="notice">
-                Ajoutez des points ou chargez un jeu pour commencer.
-              </p>
-            )}
-            {contradiction && (
-              <p className="notice">
-                Deux points au même endroit ont des cibles opposées : le réseau
-                ne peut pas satisfaire les deux.
-              </p>
-            )}
+              </span>
+                </>
+              )}
+            </div>
           </section>
         </div>
         <aside
@@ -641,21 +655,24 @@ function App() {
               </div>
             </div>
             <div className="settings learning-settings">
-              <label>
-                Learning rate{" "}
-                <input
-                  type="number"
-                  title="Taux d’apprentissage : amplitude de chaque ajustement des poids. Une valeur plus grande accélère les changements, mais peut rendre l’apprentissage instable."
-                  min="0.001"
-                  max="5"
-                  step="0.001"
-                  value={rate}
-                  onChange={(e) => {
-                    const n = +e.target.value;
-                    if (n >= 0.001 && n <= 5) setRate(n);
-                  }}
-                />
+              <label htmlFor="learning-rate">
+                Learning rate
+                <output htmlFor="learning-rate">{f(rate)}</output>
               </label>
+              <input
+                id="learning-rate"
+                type="range"
+                title="Taux d’apprentissage sur une échelle logarithmique de 0,001 à 10 : amplitude de chaque ajustement des poids. Une valeur plus grande peut rendre l’apprentissage instable."
+                min="-3"
+                max="1"
+                step="any"
+                value={Math.log10(rate)}
+                aria-valuetext={f(rate)}
+                onChange={(event) => setRate(10 ** Number(event.target.value))}
+              />
+              <div className="learning-rate-ticks" aria-hidden="true">
+                <span>0,001</span><span>0,01</span><span>0,1</span><span>1</span><span>10</span>
+              </div>
             </div>
             <div className="training-controls">
               <Button
