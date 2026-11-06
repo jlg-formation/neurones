@@ -1,0 +1,34 @@
+{
+  "name": "laboratoire-neurones",
+  "private": true,
+  "version": "1.0.0",
+  "type": "module",
+  "scripts": {
+    "dev": "vite --host 127.0.0.1",
+    "build": "tsc -b && vite build",
+    "test": "vitest run",
+    "test:e2e": "node browser-check.mjs",
+    "format": "prettier --write src vite.config.ts browser-check.mjs layout-check.mjs batch-check.mjs progress-check.mjs annotations-check.mjs drawing-check.mjs",
+    "test:layout": "node layout-check.mjs",
+    "test:batch": "node batch-check.mjs",
+    "test:progress": "node progress-check.mjs",
+    "test:annotations": "node annotations-check.mjs",
+    "test:drawing": "node drawing-check.mjs"
+  },
+  "dependencies": {
+    "react": "^19.0.0",
+    "react-dom": "^19.0.0"
+  },
+  "devDependencies": {
+    "@playwright/test": "^1.65.0",
+    "@tailwindcss/vite": "^4.0.0",
+    "@types/react": "^19.0.0",
+    "@types/react-dom": "^19.0.0",
+    "@vitejs/plugin-react": "^5.0.0",
+    "prettier": "^3.9.10",
+    "tailwindcss": "^4.0.0",
+    "typescript": "^5.9.0",
+    "vite": "^7.0.0",
+    "vitest": "^5.1.0"
+  }
+}
