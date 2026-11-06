@@ -1,8 +1,18 @@
 export type Point = { id: string; x: number; y: number; target: 0 | 1 };
-export type Network = { hidden: number; weights: number[] };
+export type Activation = "sigmoid" | "relu";
+export type Network = {
+  hidden: number;
+  weights: number[];
+  activation?: Activation;
+};
+const activate = (z: number, activation: Activation = "sigmoid") =>
+  activation === "relu" ? Math.max(0, z) : sigmoid(z);
 export const sigmoid = (z: number) =>
   z >= 0 ? 1 / (1 + Math.exp(-z)) : Math.exp(z) / (1 + Math.exp(z));
-export function createNetwork(hidden = 0): Network {
+export function createNetwork(
+  hidden = 0,
+  activation: Activation = "sigmoid",
+): Network {
   let seed = 1257 + hidden;
   const random = () => {
     seed = (Math.imul(seed, 1664525) + 1013904223) >>> 0;
@@ -10,6 +20,7 @@ export function createNetwork(hidden = 0): Network {
   };
   return {
     hidden,
+    activation,
     weights: Array.from(
       { length: hidden ? hidden * 4 + 1 : 3 },
       () => (random() - 0.5) * 2.4,
@@ -22,7 +33,7 @@ export function forward(net: Network, x: number, y: number) {
     { length: net.hidden },
     (_, j) => w[j * 3] * x + w[j * 3 + 1] * y + w[j * 3 + 2],
   );
-  const activations = z.map(sigmoid);
+  const activations = z.map((v) => activate(v, net.activation));
   const outputZ = net.hidden
     ? activations.reduce(
         (s, h, j) => s + h * w[net.hidden * 3 + j],
@@ -43,12 +54,14 @@ export function evaluate(
     n = net.hidden;
   if (hiddenIndex !== null) {
     const j = hiddenIndex * 3;
-    return sigmoid(w[j] * x + w[j + 1] * y + w[j + 2]);
+    return activate(w[j] * x + w[j + 1] * y + w[j + 2], net.activation);
   }
   if (!n) return sigmoid(w[0] * x + w[1] * y + w[2]);
   let z = w[4 * n];
   for (let j = 0; j < n; j++)
-    z += w[3 * n + j] * sigmoid(w[3 * j] * x + w[3 * j + 1] * y + w[3 * j + 2]);
+    z +=
+      w[3 * n + j] *
+      activate(w[3 * j] * x + w[3 * j + 1] * y + w[3 * j + 2], net.activation);
   return sigmoid(z);
 }
 export function metrics(net: Network, points: Point[]) {
@@ -76,7 +89,10 @@ export function gradient(net: Network, points: Point[]) {
     } else {
       for (let j = 0; j < n; j++) {
         const h = f.activations[j],
-          d = delta * net.weights[3 * n + j] * h * (1 - h);
+          d =
+            delta *
+            net.weights[3 * n + j] *
+            (net.activation === "relu" ? Number(f.z[j] > 0) : h * (1 - h));
         g[j * 3] += d * p.x;
         g[j * 3 + 1] += d * p.y;
         g[j * 3 + 2] += d;
@@ -96,8 +112,15 @@ export const xorSolution = (): Network => ({
   weights: [8, 8, 8, 8, 8, -8, 16, -16, -8],
 });
 export const datasetNames = [
-  "Deux groupes", "XOR", "Cercles", "Lettre A", "Lettre S", "Lettre C",
-  "Deux lunes", "Vagues", "Damier",
+  "Deux groupes",
+  "XOR",
+  "Cercles",
+  "Lettre A",
+  "Lettre S",
+  "Lettre C",
+  "Deux lunes",
+  "Vagues",
+  "Damier",
 ] as const;
 export type Dataset = (typeof datasetNames)[number];
 export function dataset(name: Dataset): Point[] {
@@ -116,31 +139,55 @@ export function dataset(name: Dataset): Point[] {
   if (glyph) {
     // Surround the letter with background samples to teach its full outline.
     return Array.from({ length: 63 }, (_, i) => {
-      const col = i % 7, row = Math.floor(i / 7);
-      return point((col - 3) * 0.7, (4 - row) * 0.6,
-        glyph[row - 1]?.[col - 1] === "1" ? 0 : 1, i);
+      const col = i % 7,
+        row = Math.floor(i / 7);
+      return point(
+        (col - 3) * 0.7,
+        (4 - row) * 0.6,
+        glyph[row - 1]?.[col - 1] === "1" ? 0 : 1,
+        i,
+      );
     });
   }
   if (name === "Deux lunes")
     return Array.from({ length: 64 }, (_, i) => {
       const target = (i < 32 ? 0 : 1) as 0 | 1;
-      const angle = (i % 32) / 31 * Math.PI;
+      const angle = ((i % 32) / 31) * Math.PI;
       const radius = 1.55 + 0.12 * Math.sin(i * 7);
-      return point(target ? 0.8 - radius * Math.cos(angle) : -0.8 + radius * Math.cos(angle),
-        target ? 0.45 - radius * Math.sin(angle) : radius * Math.sin(angle) - 0.45, target, i);
+      return point(
+        target
+          ? 0.8 - radius * Math.cos(angle)
+          : -0.8 + radius * Math.cos(angle),
+        target
+          ? 0.45 - radius * Math.sin(angle)
+          : radius * Math.sin(angle) - 0.45,
+        target,
+        i,
+      );
     });
   if (name === "Vagues")
     return Array.from({ length: 72 }, (_, i) => {
       const target = (i < 36 ? 0 : 1) as 0 | 1;
-      const x = -2.5 + (i % 36) / 35 * 5;
-      return point(x, 1.1 * Math.sin(x * 1.6) + (target ? 0.7 : -0.7)
-        + 0.12 * Math.sin(i * 9), target, i);
+      const x = -2.5 + ((i % 36) / 35) * 5;
+      return point(
+        x,
+        1.1 * Math.sin(x * 1.6) +
+          (target ? 0.7 : -0.7) +
+          0.12 * Math.sin(i * 9),
+        target,
+        i,
+      );
     });
   if (name === "Damier")
     return Array.from({ length: 81 }, (_, i) => {
-      const col = i % 9, row = Math.floor(i / 9);
-      return point((col - 4) * 0.6, (row - 4) * 0.6,
-        ((Math.floor(col / 3) + Math.floor(row / 3)) % 2) as 0 | 1, i);
+      const col = i % 9,
+        row = Math.floor(i / 9);
+      return point(
+        (col - 4) * 0.6,
+        (row - 4) * 0.6,
+        ((Math.floor(col / 3) + Math.floor(row / 3)) % 2) as 0 | 1,
+        i,
+      );
     });
   if (name === "XOR")
     return [

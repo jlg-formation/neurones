@@ -60,6 +60,37 @@ export function contour(net: Network, index: number | null) {
     }
   return paths.join("");
 }
+/** Both sigmoid h=0.5 and the ReLU activation threshold correspond to z=0. */
+export function hiddenBoundary(net: Network, index: number) {
+  const [a, b, bias] = net.weights.slice(index * 3, index * 3 + 3);
+  if (index < 0 || index >= net.hidden || (a === 0 && b === 0)) return "";
+  const hits: number[][] = [];
+  const add = (x: number, y: number) => {
+    if (
+      Number.isFinite(x) &&
+      Number.isFinite(y) &&
+      x >= -3 &&
+      x <= 3 &&
+      y >= -3 &&
+      y <= 3 &&
+      !hits.some(([u, v]) => Math.hypot(x - u, y - v) < 1e-9)
+    )
+      hits.push([x, y]);
+  };
+  if (b !== 0) {
+    add(-3, (3 * a - bias) / b);
+    add(3, (-3 * a - bias) / b);
+  }
+  if (a !== 0) {
+    add((3 * b - bias) / a, -3);
+    add((-3 * b - bias) / a, 3);
+  }
+  if (hits.length < 2) return "";
+  return hits
+    .slice(0, 2)
+    .map(([x, y], i) => `${i ? "L" : "M"}${toScreen(x)},${toScreen(-y)}`)
+    .join("");
+}
 export function Plot({
   net,
   points,
@@ -71,6 +102,7 @@ export function Plot({
   showErrors,
   showBatch,
   showBoundary,
+  showHiddenBoundaries = false,
   showGradient,
   onPoints,
   onSelect,
@@ -85,6 +117,7 @@ export function Plot({
   showErrors: boolean;
   showBatch: boolean;
   showBoundary: boolean;
+  showHiddenBoundaries?: boolean;
   showGradient: boolean;
   onPoints: (p: Point[]) => void;
   onSelect: (id: string | null) => void;
@@ -114,7 +147,8 @@ export function Plot({
         const a = [224, 218, 252],
           b = [210, 242, 226];
         for (let c = 0; c < 3; c++)
-          image.data[k + c] = a[c] + (b[c] - a[c]) * v;
+          image.data[k + c] =
+            a[c] + (b[c] - a[c]) * Math.min(1, Math.max(0, v));
         image.data[k + 3] = 255;
       }
     ctx.putImageData(image, 0, 0);
@@ -214,6 +248,21 @@ export function Plot({
           fill="none"
           stroke="#ada9c1"
         />
+        {showHiddenBoundaries &&
+          Array.from({ length: net.hidden }, (_, j) => (
+            <path
+              key={j}
+              className="hidden-boundary"
+              d={hiddenBoundary(net, j)}
+              fill="none"
+              stroke="#98613c"
+              strokeWidth="1.6"
+              strokeDasharray="6 5"
+              pointerEvents="none"
+            >
+              <title>{`h${j + 1} · ${net.activation === "relu" ? "seuil d’activation (z = 0)" : "activation à 0,5"}`}</title>
+            </path>
+          ))}
         {showBoundary && (
           <path
             className="decision-boundary"

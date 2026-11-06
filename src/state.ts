@@ -5,6 +5,7 @@ import {
   train,
   xorSolution,
   type Network,
+  type Activation,
   type Point,
   type Dataset,
 } from "./network";
@@ -78,6 +79,7 @@ export type Action =
   | { type: "step"; rate: number; count?: number }
   | { type: "batch-size"; value: BatchSize }
   | { type: "play"; value: boolean }
+  | { type: "activation"; value: Activation }
   | { type: "architecture"; hidden: number }
   | { type: "lesson"; index: number }
   | { type: "load-example" }
@@ -87,8 +89,12 @@ export type Action =
   | { type: "solution" }
   | { type: "inspect"; index: number | null }
   | { type: "select"; id: string | null };
-export const fresh = (points: Point[], hidden = 0) => {
-  const net = createNetwork(hidden);
+export const fresh = (
+  points: Point[],
+  hidden = 0,
+  activation: Activation = "sigmoid",
+) => {
+  const net = createNetwork(hidden, activation);
   return {
     ...batchStart(),
     net,
@@ -176,19 +182,21 @@ function reduce(s: State, a: Action): State {
       return { ...s, batchSize: a.value, playing: false };
     case "play":
       return { ...s, playing: a.value && s.points.length > 0 };
+    case "activation":
+      return { ...s, ...fresh(s.points, s.net.hidden, a.value) };
     case "architecture":
       if (!Number.isInteger(a.hidden) || a.hidden < 0 || a.hidden > 32)
         return s;
       return {
         ...s,
-        ...fresh(s.points, a.hidden),
+        ...fresh(s.points, a.hidden, s.net.activation),
         memory: a.hidden || s.memory,
       };
     case "lesson": {
       const l = lessons[a.index];
       return {
         ...s,
-        ...fresh(s.points, l.hidden),
+        ...fresh(s.points, l.hidden, s.net.activation),
         lesson: a.index,
         memory: l.hidden || s.memory,
       };
@@ -197,13 +205,17 @@ function reduce(s: State, a: Action): State {
       const lesson = lessons[s.lesson];
       return {
         ...s,
-        ...fresh(dataset(lesson.data), lesson.hidden),
+        ...fresh(dataset(lesson.data), lesson.hidden, s.net.activation),
         data: lesson.data,
         memory: lesson.hidden || s.memory,
       };
     }
     case "dataset":
-      return { ...s, ...fresh(dataset(a.name), s.net.hidden), data: a.name };
+      return {
+        ...s,
+        ...fresh(dataset(a.name), s.net.hidden, s.net.activation),
+        data: a.name,
+      };
     case "points":
       return {
         ...s,
@@ -217,7 +229,7 @@ function reduce(s: State, a: Action): State {
         selected: a.points.some((p) => p.id === s.selected) ? s.selected : null,
       };
     case "reset":
-      return { ...s, ...fresh(s.points, s.net.hidden) };
+      return { ...s, ...fresh(s.points, s.net.hidden, s.net.activation) };
     case "solution": {
       const net = xorSolution(),
         points = s.points;

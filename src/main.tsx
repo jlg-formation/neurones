@@ -50,11 +50,13 @@ function Panel({
 const f = (n: number) =>
   n.toLocaleString("fr-FR", { maximumFractionDigits: 3 });
 function LegendOption({
+  disabled = false,
   label,
   checked,
   onChange,
   children,
 }: {
+  disabled?: boolean;
   label: string;
   checked: boolean;
   onChange: (value: boolean) => void;
@@ -62,26 +64,71 @@ function LegendOption({
 }) {
   const id = useId();
   const descriptions: Record<string, string> = {
-    "Erreurs de classification": "Entoure les points dont la classe prédite diffère de la classe attendue.",
-    "Dernier lot": "Met en évidence les points utilisés lors du dernier pas d’entraînement.",
-    "Frontière à 0,5": "Trace la ligne où la prédiction du réseau, ou l’activation du neurone inspecté, vaut 0,5.",
-    "Gradient 0 vers 1": "Colore le fond selon la prédiction du réseau, ou l’activation du neurone inspecté, de 0 à 1.",
+    "Frontières des neurones cachés":
+      "Pointillés : activation à 0,5 pour les sigmoïdes ; passage de zéro à actif pour ReLU. Chaque droite correspond à un neurone caché.",
+    "Erreurs de classification":
+      "Entoure les points dont la classe prédite diffère de la classe attendue.",
+    "Dernier lot":
+      "Met en évidence les points utilisés lors du dernier pas d’entraînement.",
+    "Frontière à 0,5":
+      "Trace la ligne où la prédiction du réseau, ou l’activation du neurone inspecté, vaut 0,5.",
+    "Gradient 0 vers 1":
+      "Colore le fond selon la prédiction du réseau, ou l’activation du neurone inspecté, de 0 à 1.",
   };
   const paths: Record<string, ReactNode> = {
-    "Erreurs de classification": <><circle cx="12" cy="12" r="8"/><path d="m9 9 6 6m0-6-6 6"/></>,
-    "Dernier lot": <><rect x="3" y="3" width="18" height="18" rx="4" strokeDasharray="3 3"/><circle cx="9" cy="9" r="1"/><circle cx="15" cy="10" r="1"/><circle cx="11" cy="15" r="1"/></>,
-    "Frontière à 0,5": <path d="M4 20V4m0 16h16M6 17c2-8 10-2 12-12"/>,
-    "Gradient 0 vers 1": <><rect x="3" y="4" width="18" height="16" rx="3"/><path d="M7 7v10m4-10v10m4-10v10" opacity=".5"/><path d="M18 7v10" strokeWidth="3"/></>,
+    "Frontières des neurones cachés": (
+      <path d="M3 18 15 3M9 21 21 6M3 8 20 17" strokeDasharray="3 3" />
+    ),
+    "Erreurs de classification": (
+      <>
+        <circle cx="12" cy="12" r="8" />
+        <path d="m9 9 6 6m0-6-6 6" />
+      </>
+    ),
+    "Dernier lot": (
+      <>
+        <rect x="3" y="3" width="18" height="18" rx="4" strokeDasharray="3 3" />
+        <circle cx="9" cy="9" r="1" />
+        <circle cx="15" cy="10" r="1" />
+        <circle cx="11" cy="15" r="1" />
+      </>
+    ),
+    "Frontière à 0,5": <path d="M4 20V4m0 16h16M6 17c2-8 10-2 12-12" />,
+    "Gradient 0 vers 1": (
+      <>
+        <rect x="3" y="4" width="18" height="16" rx="3" />
+        <path d="M7 7v10m4-10v10m4-10v10" opacity=".5" />
+        <path d="M18 7v10" strokeWidth="3" />
+      </>
+    ),
   };
   return (
     <div className="display-option">
-      <Button active={checked} aria-label={label} aria-describedby={id}
-        onClick={() => onChange(!checked)} className="display-toggle">
-        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor"
-          strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">{paths[label]}</svg>
+      <Button
+        active={checked}
+        disabled={disabled}
+        aria-label={label}
+        aria-describedby={id}
+        onClick={() => onChange(!checked)}
+        className="display-toggle"
+      >
+        <svg
+          width="18"
+          height="18"
+          viewBox="0 0 24 24"
+          fill="none"
+          stroke="currentColor"
+          strokeWidth="1.7"
+          strokeLinecap="round"
+          strokeLinejoin="round"
+          aria-hidden="true"
+        >
+          {paths[label]}
+        </svg>
       </Button>
       <div id={id} role="tooltip" className="display-tooltip">
-        <strong>{children}</strong><span>{descriptions[label]}</span>
+        <strong>{children}</strong>
+        <span>{descriptions[label]}</span>
       </div>
     </div>
   );
@@ -130,6 +177,7 @@ function App() {
     [showErrors, setShowErrors] = useState(false),
     [showBatch, setShowBatch] = useState(false),
     [showBoundary, setShowBoundary] = useState(true),
+    [showHiddenBoundaries, setShowHiddenBoundaries] = useState(false),
     [showGradient, setShowGradient] = useState(true);
   useEffect(() => {
     setStorageError(!savePoints(s.points));
@@ -233,9 +281,30 @@ function App() {
                     +
                   </Button>
                 </div>
-                <p className="footnote">
-                  Une couche cachée · activation sigmoïde
-                </p>
+                <p className="counter-label">Activation de la couche cachée</p>
+                <div
+                  className="joined-buttons"
+                  role="group"
+                  aria-label="Activation de la couche cachée"
+                >
+                  <Button
+                    active={s.net.activation !== "relu"}
+                    onClick={() =>
+                      dispatch({ type: "activation", value: "sigmoid" })
+                    }
+                  >
+                    Sigmoïde
+                  </Button>
+                  <Button
+                    active={s.net.activation === "relu"}
+                    onClick={() =>
+                      dispatch({ type: "activation", value: "relu" })
+                    }
+                  >
+                    ReLU
+                  </Button>
+                </div>
+                <p className="footnote">Sortie : sigmoïde.</p>
               </>
             ) : (
               <p className="footnote">
@@ -245,8 +314,8 @@ function App() {
               </p>
             )}
             <p className="reset-note">
-              Changer l’architecture recommence l’entraînement et conserve vos
-              points.
+              Changer l’architecture ou l’activation recommence l’entraînement
+              et conserve vos points.
             </p>
           </Panel>
           <details className="panel calculations-panel">
@@ -278,7 +347,11 @@ function App() {
                             + ({f(s.net.weights[j * 3 + 1])}) × ({f(selected.y)}
                             ) + ({f(s.net.weights[j * 3 + 2])}) = {f(z)}
                           </p>
-                          <p>h = σ(z) = {f(prediction.activations[j])}</p>
+                          <p>
+                            h ={" "}
+                            {s.net.activation === "relu" ? "max(0, z)" : "σ(z)"}{" "}
+                            = {f(prediction.activations[j])}
+                          </p>
                         </section>
                       ))
                     : null}
@@ -337,8 +410,8 @@ function App() {
                 <p>Ajoutez un point dans le plan pour afficher ses calculs.</p>
               )}
               <p className="footnote">
-                σ(z) = 1 / (1 + e⁻ᶻ). Valeurs arrondies à l’affichage.
-                L’entraînement utilise{" "}
+                σ(z) = 1 / (1 + e⁻ᶻ). ReLU(z) = max(0, z). Valeurs arrondies à
+                l’affichage. L’entraînement utilise{" "}
                 {s.batchSize === "all"
                   ? "tous les points"
                   : `des lots de ${s.batchSize} points au maximum`}
@@ -377,7 +450,12 @@ function App() {
               {s.net.hidden
                 ? `${s.net.hidden} caché${s.net.hidden > 1 ? "s" : ""} → `
                 : ""}
-              1 sortie<small>Activation : sigmoïde</small>
+              1 sortie
+              <small>
+                {s.net.hidden > 0 &&
+                  `Couche cachée : ${s.net.activation === "relu" ? "ReLU" : "sigmoïde"} · `}
+                Sortie : sigmoïde
+              </small>
             </div>
             {s.net.hidden > 0 && (
               <p className="footnote">
@@ -426,113 +504,119 @@ function App() {
               >
                 <option value="">Choisir un modèle…</option>
                 <option value="empty">Modèle vide</option>
-                {datasetNames.map(
-                  (name) => (
-                    <option key={name} value={name}>
-                      {name}
-                    </option>
-                  ),
-                )}
+                {datasetNames.map((name) => (
+                  <option key={name} value={name}>
+                    {name}
+                  </option>
+                ))}
               </select>
               <div className="plot-edit-tools">
-              <div
-                className="class-buttons joined-buttons"
-                role="group"
-                aria-label="Classe du point à ajouter"
-              >
-                <Button active={target === 0} onClick={() => setTarget(0)}>
-                  <span className="dot black" />
-                  Noir (0)
-                </Button>
-                <Button active={target === 1} onClick={() => setTarget(1)}>
-                  <span className="dot white" />
-                  Blanc (1)
-                </Button>
-              </div>
-              <div className="tool-buttons">
                 <div
-                  className="joined-buttons"
+                  className="class-buttons joined-buttons"
                   role="group"
-                  aria-label="Outil du plan"
+                  aria-label="Classe du point à ajouter"
                 >
-                  <Button
-                    active={tool === "add"}
-                    onClick={() => setTool("add")}
-                  >
-                    ＋ Ajouter
+                  <Button active={target === 0} onClick={() => setTarget(0)}>
+                    <span className="dot black" />
+                    Noir (0)
                   </Button>
-                  <Button
-                    active={tool === "delete"}
-                    onClick={() => setTool("delete")}
-                  >
-                    <svg
-                      width="13"
-                      height="13"
-                      viewBox="0 0 24 24"
-                      fill="none"
-                      stroke="currentColor"
-                      strokeWidth="1.7"
-                      aria-hidden="true"
-                    >
-                      <path d="M3 6h18M9 6V3h6v3M5 6l1 15h12l1-15M10 10v7M14 10v7" />
-                    </svg>{" "}
-                    Supprimer
-                  </Button>
-                  <Button
-                    active={tool === "inspect"}
-                    onClick={() => setTool("inspect")}
-                    title="Sélectionner un point"
-                  >
-                    ⌖ Inspecter
+                  <Button active={target === 1} onClick={() => setTarget(1)}>
+                    <span className="dot white" />
+                    Blanc (1)
                   </Button>
                 </div>
+                <div className="tool-buttons">
+                  <div
+                    className="joined-buttons"
+                    role="group"
+                    aria-label="Outil du plan"
+                  >
+                    <Button
+                      active={tool === "add"}
+                      onClick={() => setTool("add")}
+                    >
+                      ＋ Ajouter
+                    </Button>
+                    <Button
+                      active={tool === "delete"}
+                      onClick={() => setTool("delete")}
+                    >
+                      <svg
+                        width="13"
+                        height="13"
+                        viewBox="0 0 24 24"
+                        fill="none"
+                        stroke="currentColor"
+                        strokeWidth="1.7"
+                        aria-hidden="true"
+                      >
+                        <path d="M3 6h18M9 6V3h6v3M5 6l1 15h12l1-15M10 10v7M14 10v7" />
+                      </svg>{" "}
+                      Supprimer
+                    </Button>
+                    <Button
+                      active={tool === "inspect"}
+                      onClick={() => setTool("inspect")}
+                      title="Sélectionner un point"
+                    >
+                      ⌖ Inspecter
+                    </Button>
+                  </div>
+                </div>
               </div>
+              <div
+                className="display-options"
+                role="group"
+                aria-label="Options d’affichage"
+              >
+                <div className="legend-options">
+                  <LegendOption
+                    label="Erreurs de classification"
+                    checked={showErrors}
+                    onChange={setShowErrors}
+                  >
+                    <span>Erreurs de classification</span>
+                  </LegendOption>
+                  <LegendOption
+                    label="Dernier lot"
+                    checked={showBatch}
+                    onChange={setShowBatch}
+                  >
+                    <span className="last-batch">
+                      Dernier lot : {s.lastBatch.length} / {s.points.length}{" "}
+                      points
+                    </span>
+                  </LegendOption>
+                </div>
+                <div className="legend-options">
+                  <LegendOption
+                    label="Frontière à 0,5"
+                    checked={showBoundary}
+                    onChange={setShowBoundary}
+                  >
+                    <span>
+                      {s.inspected === null
+                        ? "Frontière à 0,5"
+                        : "Activation à 0,5"}
+                    </span>
+                  </LegendOption>
+                  <LegendOption
+                    label="Gradient 0 vers 1"
+                    checked={showGradient}
+                    onChange={setShowGradient}
+                  >
+                    <span>Gradient 0 → 1</span>
+                  </LegendOption>
+                  <LegendOption
+                    label="Frontières des neurones cachés"
+                    checked={s.net.hidden > 0 && showHiddenBoundaries}
+                    disabled={s.net.hidden === 0}
+                    onChange={setShowHiddenBoundaries}
+                  >
+                    Frontières des neurones cachés
+                  </LegendOption>
+                </div>
               </div>
-            <div
-              className="display-options"
-              role="group"
-              aria-label="Options d’affichage"
-            >
-              <div className="legend-options">
-                <LegendOption
-                  label="Erreurs de classification"
-                  checked={showErrors}
-                  onChange={setShowErrors}
-                >
-                  <span>Erreurs de classification</span>
-                </LegendOption>
-                <LegendOption
-                  label="Dernier lot"
-                  checked={showBatch}
-                  onChange={setShowBatch}
-                >
-                  <span className="last-batch">
-                    Dernier lot : {s.lastBatch.length} / {s.points.length}{" "}
-                    points
-                  </span>
-                </LegendOption>
-              </div>
-              <div className="legend-options">
-                <LegendOption
-                  label="Frontière à 0,5"
-                  checked={showBoundary}
-                  onChange={setShowBoundary}
-                >
-                  <span>
-                    {s.inspected === null
-                      ? "Frontière à 0,5"
-                      : "Activation à 0,5"}
-                  </span>
-                </LegendOption>
-                <LegendOption
-                  label="Gradient 0 vers 1"
-                  checked={showGradient}
-                  onChange={setShowGradient}
-                >
-                  <span>Gradient 0 → 1</span>
-                </LegendOption>
-              </div>
-            </div>
             </div>
             {s.inspected !== null && (
               <button
@@ -554,35 +638,59 @@ function App() {
                 showErrors={showErrors}
                 showBatch={showBatch}
                 showBoundary={showBoundary}
+                showHiddenBoundaries={showHiddenBoundaries}
                 showGradient={showGradient}
                 onPoints={(points) => dispatch({ type: "points", points })}
                 onSelect={(id) => dispatch({ type: "select", id })}
               />
             </div>
+            {showHiddenBoundaries && s.net.hidden > 0 && (
+              <p className="footnote">
+                Pointillés : frontières des neurones cachés (
+                {s.net.activation === "relu"
+                  ? "seuil ReLU à z = 0"
+                  : "activation sigmoïde à 0,5"}
+                ). Trait plein :{" "}
+                {s.inspected === null
+                  ? "décision finale à 0,5"
+                  : "activation du neurone inspecté à 0,5"}
+                .
+              </p>
+            )}
             <div className="plot-status" role="status">
               {!s.points.length ? (
-                <span>Ajoutez des points ou chargez un jeu pour commencer.</span>
+                <span>
+                  Ajoutez des points ou chargez un jeu pour commencer.
+                </span>
               ) : contradiction ? (
-                <span>Deux points au même endroit ont des cibles opposées : le réseau ne peut pas satisfaire les deux.</span>
+                <span>
+                  Deux points au même endroit ont des cibles opposées : le
+                  réseau ne peut pas satisfaire les deux.
+                </span>
               ) : (
                 <>
-              <span>{s.points.length} échantillons · Dernier lot : {s.lastBatch.length} / {s.points.length} points</span>
-              <span>
-              {tool === "add"
-                ? `Cliquez dans le plan pour ajouter un point ${target ? "blanc (1)" : "noir (0)"}.`
-                : tool === "delete"
-                  ? "Survolez puis cliquez sur le point à supprimer."
-                  : "Cliquez sur un point pour découvrir son calcul."}{" "}
-              {showGradient && (
-                <>
-                  Le fond représente{" "}
-                  {s.inspected === null
-                    ? "la prédiction du réseau"
-                    : "l’activation du neurone"}
-                  .
-                </>
-              )}
-              </span>
+                  <span>
+                    {s.points.length} échantillons · Dernier lot :{" "}
+                    {s.lastBatch.length} / {s.points.length} points
+                  </span>
+                  <span>
+                    {tool === "add"
+                      ? `Cliquez dans le plan pour ajouter un point ${target ? "blanc (1)" : "noir (0)"}.`
+                      : tool === "delete"
+                        ? "Survolez puis cliquez sur le point à supprimer."
+                        : "Cliquez sur un point pour découvrir son calcul."}{" "}
+                    {showGradient && (
+                      <>
+                        Le fond représente{" "}
+                        {s.inspected === null
+                          ? "la prédiction du réseau"
+                          : s.net.activation === "relu"
+                            ? "l’activation ReLU (couleurs de 0 à 1, saturées au-delà de 1 ; ligne à 0,5)"
+                            : "l’activation du neurone"}
+                        .
+                      </>
+                    )}
+                  </span>
                 </>
               )}
             </div>
@@ -671,7 +779,11 @@ function App() {
                 onChange={(event) => setRate(10 ** Number(event.target.value))}
               />
               <div className="learning-rate-ticks" aria-hidden="true">
-                <span>0,001</span><span>0,01</span><span>0,1</span><span>1</span><span>10</span>
+                <span>0,001</span>
+                <span>0,01</span>
+                <span>0,1</span>
+                <span>1</span>
+                <span>10</span>
               </div>
             </div>
             <div className="training-controls">

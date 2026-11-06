@@ -11,7 +11,13 @@ import {
 } from "./network";
 import { initial, reducer } from "./state";
 import { parsePoints } from "./storage";
-import { fromScreen, toScreen, field, contour } from "./visuals";
+import {
+  fromScreen,
+  toScreen,
+  field,
+  contour,
+  hiddenBoundary,
+} from "./visuals";
 describe("moteur mathématique", () => {
   it("la grille optimisée correspond à la propagation détaillée", () => {
     for (const n of [0, 1, 3, 8]) {
@@ -361,6 +367,75 @@ describe("compteurs d’entraînement", () => {
         next.samplesSeen,
         next.batchCursor,
       ]).toEqual([0, 0, 0, 0]);
+    }
+  });
+});
+
+describe("activation ReLU", () => {
+  it("calcule le gradient et les cartes à partir de ReLU", () => {
+    const net = createNetwork(3, "relu"),
+      points = dataset("XOR");
+    const g = gradient(net, points),
+      epsilon = 1e-5;
+    for (const p of points) {
+      const result = forward(net, p.x, p.y);
+      expect(result.activations).toEqual(result.z.map((z) => Math.max(0, z)));
+      expect(field(net, null, p.x, p.y)).toBeCloseTo(result.output, 14);
+      result.activations.forEach((h, j) =>
+        expect(field(net, j, p.x, p.y)).toBe(h),
+      );
+    }
+    g.forEach((v, i) => {
+      const a = { ...net, weights: [...net.weights] },
+        b = { ...net, weights: [...net.weights] };
+      a.weights[i] += epsilon;
+      b.weights[i] -= epsilon;
+      expect(v).toBeCloseTo(
+        (metrics(a, points).loss - metrics(b, points).loss) / (2 * epsilon),
+        7,
+      );
+    });
+  });
+  it("réinitialise et conserve le choix après changement d’architecture et de données", () => {
+    let s = reducer(initial(), { type: "architecture", hidden: 3 });
+    s = reducer(s, { type: "step", rate: 0.1 });
+    const points = s.points;
+    s = reducer(s, { type: "activation", value: "relu" });
+    expect(s.points).toBe(points);
+    expect(s.step).toBe(0);
+    expect(s.playing).toBe(false);
+    for (const action of [
+      { type: "reset" },
+      { type: "architecture", hidden: 4 },
+      { type: "dataset", name: "XOR" },
+    ] as const) {
+      s = reducer(s, action);
+      expect(s.net.activation).toBe("relu");
+    }
+  });
+});
+
+describe("frontières cachées", () => {
+  it("trace exactement z=0 pour les deux activations", () => {
+    for (const activation of ["sigmoid", "relu"] as const) {
+      expect(
+        hiddenBoundary({ hidden: 1, activation, weights: [1, 0, 0, 1, 0] }, 0),
+      ).toBe("M260,485L260,35");
+      expect(
+        hiddenBoundary({ hidden: 1, activation, weights: [0, 1, 0, 1, 0] }, 0),
+      ).toBe("M35,260L485,260");
+    }
+  });
+  it("omet les frontières hors du plan et les neurones constants", () => {
+    for (const weights of [
+      [1, 0, 4],
+      [0, 0, 0],
+      [0, 0, 1],
+      [1, 1, 6],
+    ]) {
+      expect(
+        hiddenBoundary({ hidden: 1, weights: [...weights, 1, 0] }, 0),
+      ).toBe("");
     }
   });
 });
