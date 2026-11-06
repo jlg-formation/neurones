@@ -170,7 +170,7 @@ function App() {
         ))}
       </nav>
       <main className="workspace">
-        <aside className="left-column network-column">
+        <aside className="left-column configuration-column">
           <Panel title="Architecture" tag="♧">
             <div className="segmented">
               <Button
@@ -234,42 +234,8 @@ function App() {
               points.
             </p>
           </Panel>
-          <Panel title="Le réseau" tag="♧">
-            <div className="network-labels">
-              <span>Entrées</span>
-              {s.net.hidden > 0 && <span>Couche cachée</span>}
-              <span>Sortie</span>
-            </div>
-            <div
-              className="network-scroll"
-              tabIndex={0}
-              aria-label="Schéma du réseau"
-            >
-              <NetworkDiagram
-                net={s.net}
-                index={s.inspected}
-                onInspect={(index) => dispatch({ type: "inspect", index })}
-              />
-            </div>
-            <div className="architecture-caption">
-              2 entrées →{" "}
-              {s.net.hidden
-                ? `${s.net.hidden} caché${s.net.hidden > 1 ? "s" : ""} → `
-                : ""}
-              1 sortie<small>Activation : sigmoïde</small>
-            </div>
-            {s.net.hidden > 0 && (
-              <p className="footnote">
-                Cliquez sur un neurone caché pour voir sa carte d’activation.
-              </p>
-            )}
-          </Panel>
-        </aside>
-        <aside className="right-column">
-          <section className="panel calculations-panel">
-            <h2>
-              <span className="section-icon">ƒ</span> Les calculs
-            </h2>
+          <details className="panel calculations-panel">
+            <summary>Montrer les calculs</summary>
             <div
               className="calculations"
               tabIndex={0}
@@ -364,7 +330,7 @@ function App() {
                 . Les anneaux bleus indiquent le dernier lot.
               </p>
             </div>
-          </section>
+          </details>
           <p className="save-status" role="status">
             {storageError
               ? "Sauvegarde locale indisponible. Vous pouvez continuer à expérimenter."
@@ -372,6 +338,38 @@ function App() {
                 ? "✓ Points restaurés · sauvegarde automatique locale"
                 : "✓ Points sauvegardés sur cet appareil"}
           </p>
+        </aside>
+        <aside className="right-column network-column">
+          <Panel title="Le réseau" tag="♧">
+            <div className="network-labels">
+              <span>Entrées</span>
+              {s.net.hidden > 0 && <span>Couche cachée</span>}
+              <span>Sortie</span>
+            </div>
+            <div
+              className="network-scroll"
+              tabIndex={0}
+              aria-label="Schéma du réseau"
+            >
+              <NetworkDiagram
+                net={s.net}
+                index={s.inspected}
+                onInspect={(index) => dispatch({ type: "inspect", index })}
+              />
+            </div>
+            <div className="architecture-caption">
+              2 entrées →{" "}
+              {s.net.hidden
+                ? `${s.net.hidden} caché${s.net.hidden > 1 ? "s" : ""} → `
+                : ""}
+              1 sortie<small>Activation : sigmoïde</small>
+            </div>
+            {s.net.hidden > 0 && (
+              <p className="footnote">
+                Cliquez sur un neurone caché pour voir sa carte d’activation.
+              </p>
+            )}
+          </Panel>
         </aside>
         <div className="center-column">
           <section className="panel plot-panel">

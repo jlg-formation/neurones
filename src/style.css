@@ -1751,39 +1751,39 @@ footer,
     grid-template-columns: 260px minmax(0, 1fr) 180px;
   }
 }
-.network-column > .panel:first-child {
+.configuration-column > .panel:first-child {
   flex: none;
   display: block;
 }
-.network-column > .panel {
+.configuration-column > .panel {
   padding: 10px 12px;
   flex-shrink: 0;
 }
-.network-column .segmented {
+.configuration-column .segmented {
   display: flex;
   gap: 6px;
 }
-.network-column .segmented .btn {
+.configuration-column .segmented .btn {
   flex: 1;
 }
-.network-column .counter-label {
+.configuration-column .counter-label {
   margin-top: 8px;
 }
-.network-column .counter {
+.configuration-column .counter {
   display: flex;
   align-items: center;
   gap: 15px;
   margin: 5px 0;
 }
-.network-column .counter .btn {
+.configuration-column .counter .btn {
   padding: 3px 12px;
 }
-.network-column .counter strong {
+.configuration-column .counter strong {
   font-size: 22px;
   min-width: 28px;
   text-align: center;
 }
-.network-column .reset-note {
+.configuration-column .reset-note {
   display: none;
 }
 .network-scroll {
@@ -1799,19 +1799,19 @@ footer,
   min-height: 0;
   margin: 0;
 }
-.network-column .architecture-caption {
+.configuration-column .architecture-caption {
   font-size: 10px;
   margin-top: 3px;
 }
-.network-column .architecture-caption small {
+.configuration-column .architecture-caption small {
   display: inline;
   margin-left: 6px;
 }
-.network-column .footnote {
+.configuration-column .footnote {
   font-size: 10px;
   margin: 4px 0 0;
 }
-.right-column > .calculations-panel {
+.configuration-column > .calculations-panel {
   display: flex;
   flex-direction: column;
   flex: 1;
@@ -1845,7 +1845,7 @@ footer,
   .network-scroll {
     max-height: 110px;
   }
-  .network-column > .panel {
+  .configuration-column > .panel {
     padding-top: 7px;
     padding-bottom: 7px;
   }
@@ -1872,10 +1872,10 @@ footer,
     grid-template-columns: 180px 220px minmax(0, 1fr) 160px;
   }
 }
-.network-column > .panel:first-child {
+.configuration-column > .panel:first-child {
   flex: none;
 }
-.network-column > .panel:nth-child(2) {
+.configuration-column > .panel:nth-child(2) {
   display: flex;
   flex-direction: column;
   flex: 1;
@@ -1892,7 +1892,7 @@ footer,
   width: 100%;
   flex-shrink: 0;
 }
-.right-column > .calculations-panel:first-child {
+.configuration-column > .calculations-panel:first-child {
   display: flex;
   flex-direction: column;
   flex: 1;
@@ -1900,14 +1900,102 @@ footer,
   overflow: hidden;
 }
 @media (max-width: 900px) {
-  .app-shell[data-view="network"] .network-column {
+  .app-shell[data-view="network"] .configuration-column {
     display: flex;
   }
   .app-shell[data-view="network"] .workspace {
     display: grid;
     grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
   }
-  .network-column {
+  .configuration-column {
     height: 100%;
   }
+}
+
+/* Architecture and calculations share the first rail; the network owns the second. */
+.network-column > .panel:first-child {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  min-height: 0;
+}
+.network-column .architecture-caption {
+  font-size: 10px;
+  margin-top: 3px;
+}
+.network-column .footnote {
+  font-size: 10px;
+  margin-top: 6px;
+}
+@media (min-width: 901px) {
+  .workspace {
+    grid-template-columns:
+      minmax(220px, 280px) minmax(180px, 300px) minmax(0, 1fr)
+      190px;
+  }
+}
+@media (min-width: 901px) and (max-width: 1200px) {
+  .workspace {
+    grid-template-columns: 220px 180px minmax(0, 1fr) 160px;
+  }
+}
+@media (max-width: 900px) {
+  .app-shell[data-view="data"] .network-column {
+    display: none;
+  }
+}
+/* Calculations are opt-in beneath the architecture. */
+.configuration-column > details.calculations-panel:not([open]) {
+  display: block;
+  flex: none;
+  min-height: 0;
+  padding-bottom: 10px;
+}
+.calculations-panel > summary {
+  flex-shrink: 0;
+  cursor: pointer;
+  color: #70558f;
+  font-size: 12px;
+  font-weight: 600;
+}
+.calculations-panel[open] > summary {
+  margin-bottom: 9px;
+}
+.calculations-panel > summary:focus-visible {
+  outline: 2px solid #7960c7;
+  outline-offset: 3px;
+}
+/* Fit the complete network into its rail, shrinking nodes as layers grow. */
+.network-column .network-scroll {
+  overflow: hidden;
+  align-items: stretch;
+}
+.network-column .network-scroll .network-svg {
+  width: 100%;
+  height: 100%;
+  min-height: 0;
+  max-height: 100%;
+  flex: 1;
+}
+/* Native details content does not participate in the outer flex layout. */
+.configuration-column > details.calculations-panel[open] {
+  display: block;
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  overflow-x: hidden;
+  scrollbar-width: thin;
+  scrollbar-gutter: stable;
+  padding-top: 0;
+  overscroll-behavior: contain;
+}
+.calculations-panel[open] > summary {
+  position: sticky;
+  top: 0;
+  z-index: 1;
+  padding: 10px 0;
+  background: #faf9fc;
+}
+.calculations-panel[open] > .calculations {
+  overflow: visible;
 }
